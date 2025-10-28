@@ -1,56 +1,83 @@
----
-import Layout from '../layouts/Layout.astro';
----
+ <script>
+  const N8N_ENDPOINT = 'http://localhost:5678/webhook-test/testing';
 
-<Layout>
-    <main class="container">
-        <section class="hero">
-            <h1>Mow Bros</h1>
-            <p>Welcome to Mow Bros.</p>
-        </section>
+  const form = document.getElementById('contact');
+  const submitBtn = form?.querySelector('button[type="submit"]');
 
-        <section class="card">
-            <h2>Get in touch</h2>
-            <form id="contact">
-                <label>
-                    Name
-                    <input name="name" required />
-                </label>
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-                <label>
-                    Email
-                    <input type="email" name="email" required />
-                </label>
+    // Honeypot: bots will often fill hidden fields
+    const honeypot = form.querySelector('input[name="website"]')?.value || '';
+    if (honeypot) {
+      // Silently drop
+      return;
+    }
 
-                <label>
-                    Message
-                    <textarea name="message" rows="4"></textarea>
-                </label>
+    const data = Object.fromEntries(new FormData(form).entries());
 
-                <button type="submit">Send</button>
-            </form>
-        </section>
-    </main>
+    // Basic front-end validation (keep it lightweight)
+    if (!data.name || !data.email) {
+      alert('Please fill your name and email.');
+      return;
+    }
 
-    <script>
-        const form = document.getElementById('contact');
-        form?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('Form submitted!');
-        });
-    </script>
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
 
-    <style>
-        :root { --bg: #f8fafc; --text: #0f172a; --muted: #475569; --card: #ffffff; --border: #e2e8f0; --accent: #3b82f6; }
-        * { box-sizing: border-box; }
-        .container { margin: 0 auto; max-width: 720px; padding: 48px 16px; }
-        .hero h1 { margin: 0; font-size: 2rem; color: var(--text); }
-        .hero p { color: var(--muted); }
-        .card { margin-top: 24px; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
-        form { display: grid; gap: 12px; }
-        label { display: grid; gap: 6px; color: var(--text); }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
-        button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: white; cursor: pointer; }
-        button:hover { opacity: 0.9; }
-    </style>
-</Layout>
+    try {
+      const res = await fetch(N8N_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          message: data.message ?? '',
+          // Add simple metadata now; we’ll enrich later
+          submittedAt: new Date().toISOString()
+        })
+      });
+
+      if (!res.ok) throw new Error('Request failed');
+
+      alert('Thanks! We received your message.');
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send';
+    }
+  });
+</script>
+
+<form id="contact" autocomplete="off">
+  <!-- Visible fields -->
+  <label>
+    Name
+    <input name="name" required />
+  </label>
+
+  <label>
+    Email
+    <input type="email" name="email" required />
+  </label>
+
+  <label>
+    Message
+    <textarea name="message" rows="4"></textarea>
+  </label>
+
+  <!-- Honeypot (keep it invisible but present) -->
+  <input
+    type="text"
+    name="website"
+    tabindex="-1"
+    autocomplete="off"
+    style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"
+    aria-hidden="true"
+  />
+
+  <button type="submit">Send</button>
+</form>
