@@ -6,11 +6,15 @@ services:
     ports:
       - "${N8N_PORT}:5678"
     volumes:
-      - ./n8n/n8n_data:/home/node/.n8n
+      - n8n_data:/home/node/.n8n
     env_file:
       - n8n/n8n.env
     
+volumes:
+  n8n_data:
 
+
+  
   # mailhog:
     # image: mailhog:mailhog
     # container_name: mailhog
@@ -18,3 +22,4 @@ services:
     # ports:
     # - "${mail_smtp}:1025"
     # - "${mail_ui}:8025"
+
