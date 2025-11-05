@@ -1,35 +1,48 @@
-# DevOps
+# ProjectX — DevOps
 
-**Purpose:** Document local development, containerization, CI/CD, and deployment practices so humans and AI tools can operate consistently.  
-**Scope:** Docker, Compose, environment variables, CI/CD pipeline, and deployment flow.  
-**Audience:** Dev | Ops | AI tools  
+**Purpose:**
+Document how ProjectX is developed, containerized, and deployed so humans and AI tools can build, test, and deliver consistently across environments.
+
+**Scope:**
+Local Docker development, Compose topology, CI/CD pipelines, environment variables, and deployment flow.
+
+**Audience:**
+Dev | Ops | AI tools
+
 **See also:** [ARCHITECTURE.md](./ARCHITECTURE.md), [../03_Development/DEVELOPER.md](../03_Development/DEVELOPER.md)
 
 ---
 
 ## Local Development Quickstart
 
-1. Clone the repo:  
+1. **Clone the repo**
 
    ```bash
    git clone https://github.com/<org>/projectx.git
    cd projectx
    ```
 
-2. Copy the environment file and update required variables:  
+2. **Copy the environment template**
 
    ```bash
    cp .env.example .env
    ```
 
-3. Start services with Docker Compose:
+   Populate all required variables (see section below).
+
+3. **Start containers**
 
    ```bash
    docker compose up -d
    ```
 
-4. Access the local n8n instance at `http://localhost:5678`.  
-5. To stop all containers:  
+4. Access services locally:
+
+   * n8n → `http://localhost:5678`
+   * Appsmith → `http://localhost:8080`
+   * Mailhog → `http://localhost:8025`
+
+5. To stop containers:
 
    ```bash
    docker compose down
@@ -39,98 +52,125 @@
 
 ## Docker Compose Topology
 
-The `docker-compose.yml` file orchestrates multiple services:
+The `docker-compose.yml` defines a minimal local mirror of the production environment.
 
-| Service | Image | Ports | Purpose |
-|----------|--------|--------|----------|
-| **n8n** | `n8nio/n8n:latest` | 5678 | Automation workflows |
-| **postgres** | `postgres:15` | 5432 | Database for Supabase/n8n |
-| **appsmith** | `appsmith/appsmith-ce` | 8080 | Internal dashboard |
-| **mailhog** | `mailhog/mailhog` | 8025 | Email testing (local only) |
+| Service      | Image                  | Ports | Purpose                 |
+| ------------ | ---------------------- | ----- | ----------------------- |
+| **n8n**      | `n8nio/n8n:latest`     | 5678  | Core workflow engine    |
+| **postgres** | `postgres:15`          | 5432  | Persistent data layer   |
+| **appsmith** | `appsmith/appsmith-ce` | 8080  | Contractor dashboard    |
+| **mailhog**  | `mailhog/mailhog`      | 8025  | Email testing & sandbox |
 
-**Volumes:**  
+**Volumes:**
 
-- `n8n_data` → `/home/node/.n8n`  
-- `postgres_data` → `/var/lib/postgresql/data`  
+* `n8n_data` → `/home/node/.n8n`
+* `postgres_data` → `/var/lib/postgresql/data`
 
-**Networks:**  
+**Networks:**
 
-- Default Docker bridge for internal communication.
+* Default Docker bridge (`projectx_default`) for internal comms.
 
 ---
 
 ## CI/CD Overview
 
-CI/CD runs via **GitHub Actions**.  
-Pipeline stages:
+CI/CD is powered by **GitHub Actions** and automates the following lifecycle:
 
-1. **Lint/Test:** Validate syntax, run unit tests (future).  
-2. **Build:** Build Docker images and push to registry (Docker Hub or GHCR).  
-3. **Deploy:** Trigger Cloudflare Pages build and VPS redeploy for n8n.  
+| Stage           | Description                                        |
+| --------------- | -------------------------------------------------- |
+| **Lint & Test** | Validate syntax, run tests (to be added).          |
+| **Build**       | Build and tag Docker images for `n8n` and Worker.  |
+| **Push**        | Push built images to Docker Hub or GHCR.           |
+| **Deploy**      | Trigger Cloudflare Pages (frontend) and VPS (n8n). |
 
-**Sample Trigger:**  
+**Triggers:**
 
-- On merge to `main`, the pipeline builds and redeploys automatically.  
-- Preview environments created on pull requests (optional).
+* Push or merge to `main` → auto build and deploy.
+* Pull requests → create preview builds (optional).
+
+**Artifacts:**
+
+* Docker images versioned by Git SHA.
+* Cloudflare and VPS deployments tied to branch context.
 
 ---
 
 ## Deployment Flow
 
-| Stage | Platform | Description |
-|--------|-----------|-------------|
-| **Frontend** | Cloudflare Pages | Static build of Astro site |
-| **Edge Proxy** | Cloudflare Workers | API routing and validation |
-| **Automation** | VPS (Docker) | n8n instance running workflows |
-| **Database** | Supabase | Managed Postgres with optional vector support |
+| Layer                | Platform             | Description                  |
+| -------------------- | -------------------- | ---------------------------- |
+| **Frontend**         | Cloudflare Pages     | Builds Astro landing pages   |
+| **Edge Proxy**       | Cloudflare Workers   | Validates & routes requests  |
+| **Automation Layer** | VPS (Dockerized n8n) | Core logic + workflows       |
+| **Database Layer**   | Supabase (managed)   | Postgres + optional pgvector |
+| **Messaging Layer**  | Postmark / Twilio    | Email + SMS notifications    |
 
-Rollback: re-deploy previous Docker image tag or restore from snapshot.
+**Rollback Strategy:**
+Redeploy previous Docker image tag or restore Supabase snapshot (automated backups).
 
 ---
 
-## Secrets & Envs (Policy + Locations)
+## Secrets & Environment Variables
 
-- **Locations:**  
-  - Local: `.env` (untracked)  
-  - Production: Cloudflare/Server secrets manager  
-- **Rules:**  
-  - Never commit real values.  
-  - All env vars are named in UPPER_SNAKE_CASE.  
-  - Rotate on role or infrastructure changes.  
-- **Examples (names only):**
+**Locations**
 
-  ```bash
-  N8N_API_KEY=<key>
-  SUPABASE_SERVICE_ROLE_KEY=<key>
-  CLOUDFLARE_ACCOUNT_TOKEN=<token>
-  POSTMARK_SERVER_TOKEN=<token>
-  ```
+* Local: `.env` (excluded from Git)
+* Production: Stored in Cloudflare + VPS secrets manager
+* CI/CD: Encrypted secrets in GitHub Actions
 
-- **Injection:**  
-  - Local via `.env`  
-  - CI/CD via encrypted secrets in GitHub Actions  
+**Rules**
+
+* Never commit real values.
+* Use `UPPER_SNAKE_CASE`.
+* Rotate credentials after team or infrastructure changes.
+
+**Example Variables (names only):**
+
+```bash
+N8N_API_KEY=<key>
+SUPABASE_SERVICE_ROLE_KEY=<key>
+CLOUDFLARE_ACCOUNT_TOKEN=<token>
+POSTMARK_SERVER_TOKEN=<token>
+TWILIO_AUTH_TOKEN=<token>
+```
+
+**Injection**
+
+* Local → `.env` file
+* CI/CD → GitHub Actions secrets
+* Worker → Cloudflare environment variables
+
+---
+
+## Monitoring & Scaling (Planned)
+
+* Add Prometheus + Grafana for container-level metrics.
+* Use Watchtower or GitHub Action triggers for auto image updates.
+* Enable rate-limiting on Cloudflare Workers.
+* Add Redis (optional) for caching and queueing.
 
 ---
 
 ## Future Additions
 
-- Add `pipeline.md` for deeper GitHub Actions documentation.  
-- Add `infra-map.md` for environment-specific deployments (staging/prod).  
+* `pipeline.md` — detailed GitHub Actions breakdown.
+* `infra-map.md` — visual of staging vs production topology.
+* `observability.md` — defines monitoring + alerting stack.
 
 ---
 
 ## Summary for AI Tools
 
-- DevOps defines containerized setup, CI/CD automation, and deployment flow.  
-- Docker Compose spins up local n8n, Postgres, Mailhog, and Appsmith.  
-- CI/CD builds Docker images and deploys to Cloudflare + VPS.  
-- Secrets handled via env vars; names listed above.  
-- Reference ARCHITECTURE.md for system relationships.  
+* **Local:** Docker Compose spins up n8n, Postgres, Appsmith, Mailhog.
+* **CI/CD:** GitHub Actions builds + deploys to Cloudflare Pages/Workers and VPS.
+* **Secrets:** Stored via env vars (names listed above).
+* **Reference:** See `ARCHITECTURE.md` for flow context and `DEVELOPER.md` for setup commands.
 
 ---
 
 ## Key Entities & Pointers
 
-- Entities: ProjectX, n8n, Supabase, Cloudflare Pages/Workers, Docker, GitHub Actions  
-- Paths: ./docker-compose.yml, ./.env.example, .github/workflows/, ./02_Architecture/ARCHITECTURE.md  
-- Contracts: Compose defines local services; Actions handles build/deploy automation.  
+* **Entities:** ProjectX, n8n, Supabase, Cloudflare, Docker, GitHub Actions, Appsmith
+* **Paths:** `./docker-compose.yml`, `.env.example`, `.github/workflows/`, `./02_Architecture/ARCHITECTURE.md`
+* **Contracts:** Docker Compose defines service topology; Actions handle build/deploy pipelines.
+

@@ -1,65 +1,129 @@
 # ProjectX — README
 
-**Purpose:** Explain what ProjectX is, why it exists, and where to look next so humans and AI tools can operate with minimal ambiguity.  
-**Scope:** Product problem/solution, target users, core stack, and repo map.  
-**Audience:** Founders | Dev | Ops | AI tools  
+**Purpose:** ProjectX exists to help contractors and small service businesses run their operations more efficiently by unifying how they capture, track, and grow customer leads. It bridges the gap between scattered communication and organized follow-up by combining automation, data management, and marketing workflows into one private, cost-controlled system. This README defines the vision, scope, and architecture of ProjectX so that both humans and AI tools can understand the services provided, how they connect, and how to contribute or extend them without ambiguity.
+**Scope:** Contractor-focused automation system that captures, tracks, and grows leads.
+**Audience:** Founders | Dev | Ops | AI tools
 **See also:** [../02_Architecture/ARCHITECTURE.md](../02_Architecture/ARCHITECTURE.md), [../03_Development/DEVELOPER.md](../03_Development/DEVELOPER.md)
+
+---
 
 ## What is ProjectX?
 
-- One paragraph on the *problem* we solve.
-- One paragraph on the *solution* (landing page → Worker proxy → n8n → Supabase → notifications).
-- One sentence on *who benefits* (primary customer profile).
+**Problem:**
+Contractors lose opportunities every week because their leads come from scattered calls, texts, and word-of-mouth with no central system to track or follow up. High-priced CRMs and marketing software often cost more than they deliver, leaving small teams managing business growth manually.
 
-## Why now / Value
+**Solution:**
+ProjectX provides a modular automation system that turns your existing communication channels into a private, cost-controlled growth engine. Leads from your landing page, calls, and texts are captured, routed, and followed up automatically. Everything flows through one secure stack — **Cloudflare Worker → n8n → Supabase → Dashboard** — allowing contractors to see every lead, call, and review in one place.
 
-- 2–4 bullets tying to ROI (lead capture reliability, cost control, data ownership, compliance-ready).
+**Who Benefits:**
+Independent contractors, local home-service businesses, and small agencies who want a simple, own-your-data system to capture, track, and grow leads without paying for bloated CRMs.
 
-## Core Capabilities
+---
 
-- Lead intake via Astro front-end → Cloudflare Worker proxy
-- Automation in n8n (workflows: lead enrichment, notifications, CRM sync)
-- Data layer in Supabase (Postgres + pgvector optional)
-- Messaging via Postmark/SMS provider
-- Observability (basic logs now; metrics later)
+## Why Now / Value
 
-## Tech Stack (High level)
+* **Reliability:** Every call, text, and form submission is automatically logged, routed, and followed up.
+* **Cost Control:** Open-source and serverless technologies replace high recurring software costs.
+* **Data Ownership:** All customer and lead data stays in your Supabase instance — never shared or sold.
+* **Compliance Ready:** Transparent, consent-based data handling with scalable privacy controls.
 
-- Frontend: Astro + Tailwind (static), form → Worker POST
-- Edge/API: Cloudflare Workers (proxy + validation)
-- Automations: n8n (Docker, VPS)
-- Data: Supabase (Postgres, Auth, Storage, optional pgvector)
-- CI/CD & Infra: GitHub Actions, Cloudflare Pages/Workers, VPS for n8n
+---
 
-## Repository Map (Brief)
+## Core Services
 
-- 01_Product/ — README, ROADMAP  
-- 02_Architecture/ — ARCHITECTURE, DEVOPS  
-- 03_Development/ — DEVELOPER  
-- 04_Operations/ — DEPLOYMENT  
-- workers/ — Cloudflare Worker code  
-- n8n/ — workflow assets (no secrets)  
-- docker-compose.yml — local dev topology
+### **1. Lead System**
+
+A complete inbound pipeline that captures and organizes every lead across web, call, or SMS.
+
+* Landing page and form capture via **Astro → Cloudflare Worker**
+* Follow-up automations (email/SMS reminders)
+* Automatic routing and CRM-lite dashboard via **Supabase + Appsmith**
+* Designed to increase response rates and reduce lead loss
+
+### **2. Call & SMS Tracking**
+
+Track every call and message to understand what channels actually convert.
+
+* Call/SMS logging via **Twilio or Telnyx APIs**
+* Missed call detection + auto follow-up workflows
+* Caller attribution, transcription, and response metrics
+* Unified communication history view for contractors
+
+### **3. Marketing & Reputation**
+
+Turn satisfied clients into repeat business and organic growth.
+
+* Automatic **review requests** via email/SMS after job completion
+* Optional **Google Business integration** for review posting
+* Referral and remarketing automation templates
+* Optional campaign integrations with Google Ads or Meta
+
+---
+
+## Future Additions (Tier 2 Ideas)
+
+* **Smart Reporting:** Weekly summary emails with key metrics (calls, leads, conversion %).
+* **Quote Generator:** Auto-send templated quotes based on job type and location.
+* **AI Call Summaries:** Transcribe calls and tag important details (budget, timeline).
+* **Lead Scoring:** Rank incoming leads based on data enrichment.
+* **AI Chat Assistant:** Web chatbot that qualifies leads before they reach you.
+
+---
+
+## Tech Stack Overview
+
+| Layer             | Tools                                                 | Function                                 |
+| ----------------- | ----------------------------------------------------- | ---------------------------------------- |
+| **Frontend**      | Astro + Tailwind                                      | Landing page, forms                      |
+| **Edge/API**      | Cloudflare Workers                                    | Proxy + validation + request signing     |
+| **Automation**    | n8n (Docker on VPS)                                   | Workflows, lead routing, notifications   |
+| **Data Layer**    | Supabase (Postgres, Auth, Storage, pgvector optional) | Central database + CRM-lite backend      |
+| **Messaging**     | Postmark, Twilio/SMS Provider                         | Follow-ups and notifications             |
+| **Infra / CI/CD** | GitHub Actions, Cloudflare Pages/Workers              | Deployment, build automation, monitoring |
+
+---
+
+## Repository Map
+
+```
+01_Product/        → README, ROADMAP  
+02_Architecture/   → ARCHITECTURE.md, DEVOPS.md  
+03_Development/    → DEVELOPER.md  
+04_Operations/     → DEPLOYMENT.md  
+workers/           → Cloudflare Worker code  
+n8n/               → Workflow exports (no secrets)  
+docker-compose.yml → Local dev topology
+```
+
+---
 
 ## Non-Goals (for now)
 
-- Full CRM suite, multi-tenant admin, WAF policies, advanced analytics dashboards.
+* Full CRM suite or multi-tenant admin panel
+* AI receptionist or scheduling integrations (future tier)
+* Advanced analytics dashboards beyond essential insights
 
-## Future Additions (optional)
-
-- user-personas.md — 1 paragraph per persona for messaging alignment.  
-- value-proposition.md — crisp differentiators vs AI-agency clones.  
-- decision-log.md — brief record of major pivots and why.
+---
 
 ## Summary for AI Tools
 
-- ProjectX = Astro form → Cloudflare Worker (proxy) → n8n webhook → Supabase → notifications.
-- Use env var *names only*; values are injected at runtime (see DEVOPS.md).
-- Canonical neighbors: ARCHITECTURE.md (flow, integrations), DEVELOPER.md (setup), DEVOPS.md (compose, CI/CD).
-- Output code that assumes Worker handles input validation and signs requests to n8n.
+**System flow:** Astro → Cloudflare Worker (proxy) → n8n webhook → Supabase → notifications.
+Use environment variable **names only**; values are injected at runtime (see `DEVOPS.md`).
+Canonical neighbors:
+
+* `ARCHITECTURE.md` → data flow and integrations
+* `DEVELOPER.md` → setup and development
+* `DEVOPS.md` → Docker, CI/CD, environment setup
+
+**Rule:** Worker handles input validation, rate-limiting, and request signing to n8n.
+
+---
 
 ## Key Entities & Pointers
 
-- Entities: ProjectX, n8n, Supabase (Postgres/pgvector), Cloudflare Pages/Workers, Postmark  
-- Paths: ./workers/, ./n8n/, ./docker-compose.yml, ./01_Product/, ./02_Architecture/  
-- Contracts: POST /lead (Worker) → forwards to n8n webhook; required envs listed in DEVOPS.md
+* **Entities:** ProjectX, n8n, Supabase (Postgres/pgvector), Cloudflare Pages/Workers, Postmark, Twilio
+* **Paths:** `./workers/`, `./n8n/`, `./docker-compose.yml`, `./01_Product/`, `./02_Architecture/`
+* **Contract:**
+  `POST /lead` (Worker) → validates and forwards payload to n8n webhook.
+  Required environment variables listed in `DEVOPS.md`.
+

@@ -49,8 +49,8 @@ Compose variable interpolation (the ${VAR} you use in ports:) only reads from a 
 
 ## Environment Files in Docker
 
-- .env → controls Compose / host-level variables (e.g. port mapping, volume paths).
-- n8n.env → controls n8n app-level settings inside the container.
+- .env -> controls Compose / host-level variables (e.g. port mapping, volume paths).
+- n8n.env -> controls n8n app-level settings inside the container.
 
 | Category                | Variables                    | Who uses them                |
 | ----------------------- | ---------------------------- | ---------------------------- |
@@ -58,3 +58,36 @@ Compose variable interpolation (the ${VAR} you use in ports:) only reads from a 
 | **Security**            | ENCRYPTION_KEY, BASIC_AUTH_* | n8n                          |
 | **External access**     | WEBHOOK_URL, EDITOR_BASE_URL | n8n (for clients & webhooks) |
 | **Deployment-level**    | (none of these)              | Docker Compose / host (.env) |
+
+---
+
+## Lead Intake Workflow (Blueprint)
+
+When the Worker forwards payloads to `/webhook/lead`, n8n should run the following nodes:
+
+1. **Webhook (POST /webhook/lead)** - parses JSON body. Expects `{ name, email, service_type?, budget?, message?, submittedAt? }`.
+2. **Function: Normalize Payload** - map fields to Supabase columns (`full_name`, `email`, `service_type`, `budget`, `message`, `source = 'web'`) and attach metadata (request ID, submittedAt, user agent).
+3. **Supabase (Insert Row)** - table `leads`. Use Service Role key, enable upsert on `email` + `service_type` to prevent duplicates.
+4. **Notification Branch** - Postmark or SMS node to alert the operator; Slack/Teams optional.
+5. **Automation Branching** - IF node for lead score threshold, CRM sync, review trigger, etc.
+6. **Respond to Webhook** - return `{ ok: true, leadId }` with 200 status so the Worker can surface success to the browser.
+
+Enable **Error Workflow** so failures emit an alert (email/Slack) and do not silently drop leads.
+
+---
+
+## Required Credentials in n8n
+
+- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
+- `POSTMARK_SERVER_TOKEN` (or Twilio/Telnyx credentials for SMS)
+- Optional: Google Places API, Clearbit, or other enrichment providers
+
+Store them as n8n credentials and reference via the node credential selector-avoid hardcoding secrets in workflows.
+
+---
+
+## Summary for AI Tools
+
+- Flow: Astro form -> Cloudflare Worker (`POST /lead`) -> n8n webhook -> Supabase -> notifications.
+- Use environment variable names only; values live in `.env`, `n8n.env`, or secrets manager.
+- Worker adds `X-Request-Id` and `X-Project-Name` headers-capture them in n8n for traceability.
